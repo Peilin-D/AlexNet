@@ -1,0 +1,11 @@
+*.pyc
+detect/
+keypts_test/
+keypts_train/
+test/
+tmp/
+train/
+ImageSplits/
+**/.DS_Store
+.ipynb_checkpoints/
+*.npy
