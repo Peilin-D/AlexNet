@@ -1,4 +1,5 @@
 from model import load_pretrained_weights, inference_deep, loss, train
+from eval import evaluate
 from inputs import *
 
 import tensorflow as tf
@@ -6,29 +7,33 @@ from datetime import datetime
 import time
 import argparse
 
-def run_train(train_from_scratch, batch_size):
+def run_train(train_from_scratch, batch_size, use_keypts):
   with tf.Graph().as_default() as g:
     global_step = tf.contrib.framework.get_or_create_global_step()
     with tf.device('/cpu:0'):
       images, labels, keypts = distorted_inputs(batch_size)
-
-    pred = inference_deep(images, 0.5, keypts)
+    if use_keypts:
+      pred = inference_deep(images, 0.5, keypts)
+    else:
+      pred = inference_deep(images, 0.5)
     total_loss = loss(pred, labels, 0.0005)
     train_op = train(total_loss, global_step)
     
-    skip_layers = ['fc6', 'fc7', 'fc8']
+    skip_layers = ['fc7', 'fc8']
     load_op = load_pretrained_weights(skip_layers)
 
     class _LoggerHook(tf.train.SessionRunHook):
       def begin(self):
+        print tf.losses.get_regularization_losses()
+        print tf.trainable_variables()
         self._step = -1
         self._start_time = time.time()
 
       def before_run(self, run_context):
         self._step += 1
         if self._step % 500 == 0:
-          return tf.train.SessionRunArgs([total_loss, eval_once(1000, True)])
-        else if self._step % 100 == 0:
+          return tf.train.SessionRunArgs([total_loss, evaluate(True, 1000, False)])
+        elif self._step % 100 == 0:
           return tf.train.SessionRunArgs(total_loss)
         return None
 
@@ -45,7 +50,7 @@ def run_train(train_from_scratch, batch_size):
             print 'test accuracy = %.3f' % run_values.results[1]
 
     with tf.train.MonitoredTrainingSession(
-      # checkpoint_dir='./tmp/ckpt',
+      checkpoint_dir='./tmp/ckpt_3',
       hooks=[tf.train.StopAtStepHook(last_step=10000),
             tf.train.NanTensorHook(total_loss),
             _LoggerHook()]
@@ -59,5 +64,6 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--from_scratch', action='store_true', default=False)
   parser.add_argument('--batch_size', default=128, type=int)
+  parser.add_argument('--use_keypts', action='store_true', default=False)
   args = parser.parse_args()
-  run_train(args.from_scratch, args.batch_size)
+  run_train(args.from_scratch, args.batch_size, args.use_keypts)

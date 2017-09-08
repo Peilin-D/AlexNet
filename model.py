@@ -90,7 +90,7 @@ def load_pretrained_weights(skip_layers, set_untrainable=True, warm_start=True):
   trainables = tf.get_collection_ref(tf.GraphKeys.TRAINABLE_VARIABLES)
   regularizations = tf.get_collection_ref(tf.GraphKeys.REGULARIZATION_LOSSES)
   for layer in weights:
-    if layer not in skip_layers or warm_start:
+    if layer not in skip_layers or warm_start and layer != 'fc8':
       with tf.variable_scope(layer, reuse=True) as scope:
         kernel = tf.get_variable('weights')
         ops.append(tf.assign(kernel, weights[layer][0]))
@@ -99,7 +99,7 @@ def load_pretrained_weights(skip_layers, set_untrainable=True, warm_start=True):
         if set_untrainable:
           trainables.remove(kernel)
           trainables.remove(biases)
-          regularizations.remove(scope.name)
+          regularizations.remove(tf.losses.get_regularization_losses(scope.name)[0])
   return tf.group(*ops)
 
 def loss(logits, labels, wd):
@@ -109,7 +109,7 @@ def loss(logits, labels, wd):
     return cross_entropy + wd * tf.add_n(reg_losses)
 
 def train(loss, global_step):
-  lr = tf.train.exponential_decay(0.01, global_step, 5000, 0.1, True)
+  lr = tf.train.exponential_decay(0.01, global_step, 2000, 0.1, True)
   # opt = tf.train.GradientDescentOptimizer(lr)
   # opt = tf.train.MomentumOptimizer(lr, 0.9)
   opt = tf.train.AdamOptimizer()

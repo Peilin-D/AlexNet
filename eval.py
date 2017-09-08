@@ -21,7 +21,7 @@ def evaluate(train, batch_size, use_keypts):
 #         summary_op = tf.summary.merge_all()
 #         summary_write = tf.summary.FileWriter('./tmp/eval', g)
     with tf.Session() as sess:
-      ckpt = tf.train.get_checkpoint_state('./tmp/ckpt')
+      ckpt = tf.train.get_checkpoint_state('./tmp/ckpt_3')
       if ckpt and ckpt.model_checkpoint_path:
         print ckpt.model_checkpoint_path
         saver.restore(sess, ckpt.model_checkpoint_path)
