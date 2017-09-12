@@ -102,28 +102,33 @@ def inference(images, keep_prob):
   # 3rd layer
   conv3 = conv_relu('conv3', pool2, [3, 3, 256, 384], [1, 1, 1, 1], 'SAME', 1)
   
+  pool3 = tf.nn.max_pool(conv3, ksize=[1, 3, 3, 1], strides=[1,2,2,1], padding='VALID', name='pool3') 
   # shape = conv3.get_shape()[1:]
   # print shape
-  flat3 = tf.reshape(conv3, [-1, 13 * 13 * 384])
-  fc4 = fc('fc4', flat3, 40, False)
+  flat3 = tf.reshape(pool3, [-1, 6 * 6 * 384])
+  fc4 = fc('fc4', flat3, 2048, relu=True)
+  fc4_drop = tf.nn.dropout(fc4, keep_prob)
+  fc5 = fc('fc5', fc4_drop, 40, relu=False)
   
-  return fc4
+  return fc5
 
 
 
-def load_pretrained_weights(skip_layers, set_untrainable=True, warm_start=True):
+def load_pretrained_weights(skip_layers, set_trainable=False):
+  print skip_layers
   weights = np.load('bvlc_alexnet.npy').item()
   ops = []
   trainables = tf.get_collection_ref(tf.GraphKeys.TRAINABLE_VARIABLES)
   regularizations = tf.get_collection_ref(tf.GraphKeys.REGULARIZATION_LOSSES)
   for layer in weights:
-    if layer not in skip_layers or warm_start and layer != 'fc8':
+    if layer not in skip_layers:
+      print layer
       with tf.variable_scope(layer, reuse=True) as scope:
         kernel = tf.get_variable('weights')
         ops.append(tf.assign(kernel, weights[layer][0]))
         biases = tf.get_variable('biases')
         ops.append(tf.assign(biases, weights[layer][1]))
-        if set_untrainable:
+        if not set_trainable:
           trainables.remove(kernel)
           trainables.remove(biases)
           regularizations.remove(tf.losses.get_regularization_losses(scope.name)[0])
@@ -136,14 +141,15 @@ def loss(logits, labels, wd):
     return cross_entropy + wd * tf.add_n(reg_losses)
 
 def train(loss, global_step):
-  # lr = tf.train.exponential_decay(0.01, global_step, 2000, 0.1, True)
-  # opt = tf.train.GradientDescentOptimizer(lr)
+  lr = tf.train.exponential_decay(0.01, global_step, 3000, 0.1, True)
+  opt = tf.train.GradientDescentOptimizer(lr)
   # opt = tf.train.MomentumOptimizer(lr, 0.9)
-  opt = tf.train.AdamOptimizer()
+  # opt = tf.train.AdamOptimizer()
   train_op = opt.minimize(loss, global_step)
-  # variable_averages = tf.train.ExponentialMovingAverage(0.999, global_step)
-  # variable_averages_op = variable_averages.apply(tf.trainable_variables())
-  # with tf.control_dependencies([train_op, variable_averages_op]):
-    # op = tf.no_op()
-  return train_op
+  variable_averages = tf.train.ExponentialMovingAverage(0.999, global_step)
+  variable_averages_op = variable_averages.apply(tf.trainable_variables())
+  with tf.control_dependencies([train_op, variable_averages_op]):
+    op = tf.no_op()
+  return op
+  #return train_op
 

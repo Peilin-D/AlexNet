@@ -13,6 +13,8 @@ ckpt_2:
 
 
 ckpt_3:
-  [same as ckpt_2]
-  no weight decay
-  evaluate every 600 steps
+  shallow model (inference)
+  3 conv layer pretrained, fixed, 2 fc layer trainable, fc4 output size 1024
+  seems underfit, train acc 0.6, test acc 0.3
+ 
+
