@@ -58,8 +58,8 @@ def get_keypts(folder, img_list, train):
       i += 1
     results.append(result)
   while i < len(img_list):
-      results.append([0.0] * 36)
-      i += 1
+    results.append([0.0] * 36)
+    i += 1
   return results
 
 def distorted_inputs(batch_size):
@@ -81,14 +81,13 @@ def distorted_inputs(batch_size):
   random.shuffle(input_tensor)
   
   data_queue = tf.FIFOQueue(capacity=100, dtypes=[tf.string, tf.int32, tf.float32], shapes=[[],[],[36]])
-  enqueue_op = data_queue.enqueue_many([img_list, label_list, keypts_list])
+  enqueue_op = data_queue.enqueue_many(zip(*input_tensor))
   qr = tf.train.QueueRunner(data_queue, [enqueue_op] * 4)
   tf.train.add_queue_runner(qr)
   
   img_file, label, keypt = data_queue.dequeue()
   raw = tf.read_file(img_file)
   img = tf.image.decode_jpeg(raw)
-#     label = tf.string_to_number(label, tf.int32)
   resized_img = tf.image.resize_images(img, tf.constant([227, 227]))
   fliped_img = tf.image.random_flip_left_right(resized_img)
   distorted_img = tf.image.random_brightness(fliped_img, max_delta=50)

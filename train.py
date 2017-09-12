@@ -19,7 +19,7 @@ def run_train(train_from_scratch, batch_size, use_keypts):
 
     skip_layers = ['fc7', 'fc8']
     load_op = load_pretrained_weights(skip_layers)
-    total_loss = loss(pred, labels, 0.0005)
+    total_loss = loss(pred, labels, 0.000)
     train_op = train(total_loss, global_step)
 
     class _LoggerHook(tf.train.SessionRunHook):
@@ -29,22 +29,25 @@ def run_train(train_from_scratch, batch_size, use_keypts):
 
       def before_run(self, run_context):
         self._step += 1
+        if self._step % 600 == 0 and self._step > 0:
+          evaluate(False, 500, False)
         if self._step % 100 == 0:
           return tf.train.SessionRunArgs(total_loss)
-        return None
+        else:
+          return None
 
       def after_run(self, run_context, run_values):
         if self._step % 100 == 0:
           current_time = time.time()
           duration = current_time - self._start_time
           self._start_time = current_time
-
           loss_val = run_values.results
           format_str = '%s: step %d, loss = %.3f, duration = %.2f'
           print format_str % (datetime.now(), self._step, loss_val, duration)
 
     with tf.train.MonitoredTrainingSession(
-      # checkpoint_dir='./tmp/ckpt_3',
+      checkpoint_dir='./tmp/ckpt_3',
+      save_checkpoint_secs=300,
       hooks=[tf.train.StopAtStepHook(last_step=10000),
             tf.train.NanTensorHook(total_loss),
             _LoggerHook()]

@@ -15,16 +15,16 @@ def evaluate(train, batch_size, use_keypts):
     else:
       pred = inference_deep(images, 1.0)
     top_k_op = tf.nn.in_top_k(pred, labels, 1)
-    variable_averages = tf.train.ExponentialMovingAverage(0.999)
-    variables_to_restore = variable_averages.variables_to_restore()
-    saver = tf.train.Saver(variables_to_restore)
+    # variable_averages = tf.train.ExponentialMovingAverage(0.999)
+    # variables_to_restore = variable_averages.variables_to_restore()
+    saver = tf.train.Saver()
 #         summary_op = tf.summary.merge_all()
 #         summary_write = tf.summary.FileWriter('./tmp/eval', g)
     with tf.Session() as sess:
       ckpt = tf.train.get_checkpoint_state('./tmp/ckpt_3')
       if ckpt and ckpt.model_checkpoint_path:
-        print ckpt.model_checkpoint_path
-        saver.restore(sess, ckpt.model_checkpoint_path)
+        print ckpt.all_model_checkpoint_paths[-1]
+        saver.restore(sess, ckpt.all_model_checkpoint_paths[-1])
       else:
         print 'No checkpoint file found'
         return

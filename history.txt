@@ -1,0 +1,18 @@
+ckpt_2: 
+  date: Sep 11, 2017
+  skip_layer: fc7, fc8
+  not using keypts
+  fix pretrianed weights
+  weight decay: 0.0005
+  FIFO queue for inputs
+  no moving average
+  AdamOptimizer()
+  evaluate every 800 steps
+  results: 
+   couldn't converge, loss is at 3~, best_ckpt is step 2633 
+
+
+ckpt_3:
+  [same as ckpt_2]
+  no weight decay
+  evaluate every 600 steps
