@@ -24,15 +24,16 @@ def run_train(train_from_scratch, batch_size, use_keypts):
 
     class _LoggerHook(tf.train.SessionRunHook):
       def begin(self):
-        print tf.losses.get_regularization_losses()
-        print tf.trainable_variables()
+        # print tf.losses.get_regularization_losses()
+        # print tf.trainable_variables()
         self._step = -1
         self._start_time = time.time()
 
       def before_run(self, run_context):
         self._step += 1
-        if self._step % 500 == 0:
-          return tf.train.SessionRunArgs([total_loss, evaluate(True, 1000, False)])
+        if self._step % 800 == 0 and self._step > 0:
+          evaluate(False, 1000, False)
+          return tf.train.SessionRunArgs(total_loss)
         elif self._step % 100 == 0:
           return tf.train.SessionRunArgs(total_loss)
         return None
@@ -41,13 +42,10 @@ def run_train(train_from_scratch, batch_size, use_keypts):
         if self._step % 100 == 0:
           current_time = time.time()
           duration = current_time - self._start_time
-          self._start_time = current_time
-
-          loss_val = run_values.results[0]
+          self._start_time = current_time 
+          loss_val = run_values.results
           format_str = '%s: step %d, loss = %.3f, duration = %.2f'
           print format_str % (datetime.now(), self._step, loss_val, duration)
-          if self._step % 500 == 0:
-            print 'test accuracy = %.3f' % run_values.results[1]
 
     with tf.train.MonitoredTrainingSession(
       checkpoint_dir='./tmp/ckpt_3',
