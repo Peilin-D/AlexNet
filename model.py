@@ -109,14 +109,14 @@ def loss(logits, labels, wd):
     return cross_entropy + wd * tf.add_n(reg_losses)
 
 def train(loss, global_step):
-  lr = tf.train.exponential_decay(0.01, global_step, 2000, 0.1, True)
+  # lr = tf.train.exponential_decay(0.01, global_step, 2000, 0.1, True)
   # opt = tf.train.GradientDescentOptimizer(lr)
   # opt = tf.train.MomentumOptimizer(lr, 0.9)
   opt = tf.train.AdamOptimizer()
   train_op = opt.minimize(loss, global_step)
-  variable_averages = tf.train.ExponentialMovingAverage(0.999, global_step)
-  variable_averages_op = variable_averages.apply(tf.trainable_variables())
-  with tf.control_dependencies([train_op, variable_averages_op]):
-    op = tf.no_op()
-  return op
+  # variable_averages = tf.train.ExponentialMovingAverage(0.999, global_step)
+  # variable_averages_op = variable_averages.apply(tf.trainable_variables())
+  # with tf.control_dependencies([train_op, variable_averages_op]):
+    # op = tf.no_op()
+  return train_op
 
