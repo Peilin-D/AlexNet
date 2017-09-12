@@ -84,6 +84,33 @@ def inference_deep(images, keep_prob, keypts = None):
   
   return fc8
 
+def inference(images, keep_prob):
+  # 1st layer
+  conv1 = conv_relu('conv1', images, [11, 11, 3, 96], [1, 4, 4, 1], 'VALID', 1)
+  lrn1 = tf.nn.local_response_normalization(conv1, alpha=2e-5, beta=0.75,
+                                            depth_radius=2, bias=1.0, name='lrn1')
+  pool1 = tf.nn.max_pool(lrn1, ksize=[1, 3, 3, 1], 
+                         strides=[1, 2, 2, 1], padding='VALID', name='pool1')
+  
+  # 2nd layer
+  conv2 = conv_relu('conv2', pool1, [5, 5, 96, 256], [1, 1, 1, 1], 'SAME', 2)
+  lrn2 = tf.nn.local_response_normalization(conv2, alpha=2e-5, beta=0.75, 
+                                            depth_radius=2, bias=1.0, name='lrn2')
+  pool2 = tf.nn.max_pool(lrn2, ksize=[1, 3, 3, 1], 
+                         strides=[1, 2, 2, 1], padding='VALID', name='pool2')
+  
+  # 3rd layer
+  conv3 = conv_relu('conv3', pool2, [3, 3, 256, 384], [1, 1, 1, 1], 'SAME', 1)
+  
+  # shape = conv3.get_shape()[1:]
+  # print shape
+  flat3 = tf.reshape(conv3, [-1, 13 * 13 * 384])
+  fc4 = fc('fc4', flat3, 40, False)
+  
+  return fc4
+
+
+
 def load_pretrained_weights(skip_layers, set_untrainable=True, warm_start=True):
   weights = np.load('bvlc_alexnet.npy').item()
   ops = []
