@@ -10,7 +10,6 @@ def restoreEMA(remove_layers):
     layer = k.split('/')[0]
     if layer in remove_layers:
       del ema_variables[k]
-  
   return ema_variables
 
 def restoreFIX(remove_layers):
@@ -21,7 +20,7 @@ def restoreFIX(remove_layers):
       del variables[k]
   return variables
 
-def evaluate(train, batch_size, use_keypts):
+def evaluate(train, batch_size, use_keypts, checkpoint_dir):
   with tf.Graph().as_default() as g:
     if train:
       images, labels, keypts = distorted_inputs(batch_size)
@@ -31,21 +30,21 @@ def evaluate(train, batch_size, use_keypts):
     # if use_keypts:
     #  pred = inference_deep(images, 1.0, keypts)
     # else:
-    pred = inference_deep(images, 1.0)
+    pred = inference(images, 1.0)
     top_k_op = tf.nn.in_top_k(pred, labels, 1)
-    variable_averages = tf.train.ExponentialMovingAverage(0.999)
-    variables_to_restore = variable_averages.variables_to_restore()
+    # variable_averages = tf.train.ExponentialMovingAverage(0.999)
+    # variables_to_restore = variable_averages.variables_to_restore()
     # ema = restoreEMA(['conv1', 'conv2', 'conv3'])
     # fix = restoreFIX(['fc4', 'fc5']) 
     # fix.update(ema)
-    saver = tf.train.Saver(variables_to_restore)
+    saver = tf.train.Saver()
 #         summary_op = tf.summary.merge_all()
 #         summary_write = tf.summary.FileWriter('./tmp/eval', g)
     with tf.Session() as sess:
-      ckpt = tf.train.get_checkpoint_state('./tmp/ckpt_2')
+      ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
       if ckpt and ckpt.model_checkpoint_path:
-        print ckpt.all_model_checkpoint_paths[-3]
-        saver.restore(sess, ckpt.all_model_checkpoint_paths[-3])
+        print ckpt.all_model_checkpoint_paths[-1]
+        saver.restore(sess, ckpt.all_model_checkpoint_paths[-1])
       else:
         print 'No checkpoint file found'
         return
@@ -65,5 +64,6 @@ if __name__ == '__main__':
   parser.add_argument('--train', action='store_true', default=False)
   parser.add_argument('--batch_size', default=1000, type=int)
   parser.add_argument('--use_keypts', action='store_true', default=False)
+  parser.add_argument('--ckpt', required=True)
   args = parser.parse_args()
-  evaluate(args.train, args.batch_size, args.use_keypts)
+  evaluate(args.train, args.batch_size, args.use_keypts, args.ckpt)

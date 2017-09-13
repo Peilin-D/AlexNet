@@ -15,9 +15,8 @@ ckpt_2:
   date: Sep 12, 2017
   almost same as ckpt_2, except for using SGD with learning rate 0.01, this seems crucial to lift the test acc to 0.5.
 
-ckpt_3:
+ckpt_3/4/5:
   shallow model (inference)
-  3 conv layer pretrained, fixed, 2 fc layer trainable, fc4 output size 1024
-  seems underfit, train acc 0.6, test acc 0.3
- 
-
+  3 conv layer pretrained, fixed, 2 fc layer trainable, fc4 output size 1024/4096/2048
+  _3 seems underfit, train acc 0.6, test acc 0.3
+  _4/5 train acc 0.99, test acc 0.4
