@@ -7,7 +7,7 @@ from datetime import datetime
 import time
 import argparse
 
-def run_train(train_from_scratch, batch_size, use_keypts):
+def run_train(train_from_scratch, batch_size, use_keypts, checkpoint_dir):
   with tf.Graph().as_default() as g:
     global_step = tf.contrib.framework.get_or_create_global_step()
     with tf.device('/cpu:0'):
@@ -21,47 +21,39 @@ def run_train(train_from_scratch, batch_size, use_keypts):
     load_op = load_pretrained_weights(skip_layers, set_trainable=False)
     total_loss = loss(pred, labels, 0.000)
     train_op = train(total_loss, global_step)
-
-    class _LoggerHook(tf.train.SessionRunHook):
-      def begin(self):
-        self._step = -1
-        self._start_time = time.time()
-
-      def before_run(self, run_context):
-        self._step += 1
-        if self._step % 600 == 0 and self._step > 0:
-          evaluate(False, 500, False)
-          evaluate(True, 1000, False)
-        if self._step % 100 == 0:
-          return tf.train.SessionRunArgs(total_loss)
-        else:
-          return None
-
-      def after_run(self, run_context, run_values):
-        if self._step % 100 == 0:
-          current_time = time.time()
-          duration = current_time - self._start_time
-          self._start_time = current_time
-          loss_val = run_values.results
-          format_str = '%s: step %d, loss = %.3f, duration = %.2f'
-          print format_str % (datetime.now(), self._step, loss_val, duration)
-
-    with tf.train.MonitoredTrainingSession(
-      checkpoint_dir='./tmp/ckpt_5',
-      save_checkpoint_secs=300,
-      hooks=[tf.train.StopAtStepHook(last_step=10000),
-            tf.train.NanTensorHook(total_loss),
-            _LoggerHook()]
-    ) as sess:
-        if not train_from_scratch:
-          sess.run(load_op)
-        while not sess.should_stop():
-          sess.run(train_op)
+    
+    saver = tf.train.Saver(max_to_keep=10)
+    if not os.path.exists(checkpoint_dir):
+      os.mkdir(checkpoint_dir)
+    with tf.Session() as sess:
+      ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
+      if ckpt and ckpt.model_checkpoint_path:
+        saver.restore(sess, ckpt.all_model_checkpoint_paths[-1])
+      else:
+        print 'No checkpoint file found'
+        sess.run(tf.global_variables_initializer())
+      coord = tf.train.Coordinator()
+      threads = tf.train.start_queue_runners(sess, coord)
+      if not train_from_scratch:
+        sess.run(load_op)
+      i = 0
+      max_iter = 10000
+      while i < max_iter and not coord.should_stop():
+        sess.run(train_op)
+        if i % 100 == 0:
+          loss_val = sess.run(total_loss)
+          print 'step %d, loss = %.3f' % (i, loss_val)
+        if i > 0 and i % 500 == 0:
+          saver.save(sess, checkpoint_dir + '/model_ckpt', global_step)
+          evaluate(False, 500)
+          evaluate(True, 1000)
+        i += 1
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
   parser.add_argument('--from_scratch', action='store_true', default=False)
   parser.add_argument('--batch_size', default=128, type=int)
   parser.add_argument('--use_keypts', action='store_true', default=False)
+  parser.add_argument('--ckpt', required=True)
   args = parser.parse_args()
-  run_train(args.from_scratch, args.batch_size, args.use_keypts)
+  run_train(args.from_scratch, args.batch_size, args.use_keypts, args.ckpt)

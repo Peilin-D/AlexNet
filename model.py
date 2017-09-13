@@ -122,7 +122,6 @@ def load_pretrained_weights(skip_layers, set_trainable=False):
   regularizations = tf.get_collection_ref(tf.GraphKeys.REGULARIZATION_LOSSES)
   for layer in weights:
     if layer not in skip_layers:
-      print layer
       with tf.variable_scope(layer, reuse=True) as scope:
         kernel = tf.get_variable('weights')
         ops.append(tf.assign(kernel, weights[layer][0]))
