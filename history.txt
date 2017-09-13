@@ -1,4 +1,4 @@
-ckpt_2: 
+ckpt_2(deleted): 
   date: Sep 11, 2017
   skip_layer: fc7, fc8
   not using keypts
@@ -11,6 +11,9 @@ ckpt_2:
   results: 
    couldn't converge, loss is at 3~, best_ckpt is step 2633 
 
+ckpt_2:
+  date: Sep 12, 2017
+  almost same as ckpt_2, except for using SGD with learning rate 0.01, this seems crucial to lift the test acc to 0.5.
 
 ckpt_3:
   shallow model (inference)

@@ -15,10 +15,10 @@ def run_train(train_from_scratch, batch_size, use_keypts):
     #if use_keypts:
     #  pred = inference(images, 0.5, keypts)
     #else:
-    pred = inference(images, 0.5)
+    pred = inference_deep(images, 0.5)
 
-    skip_layers = ['conv4', 'conv5', 'fc6', 'fc7', 'fc8']
-    load_op = load_pretrained_weights(skip_layers, set_trainable=False)
+    skip_layers = ['fc7', 'fc8']
+    load_op = load_pretrained_weights(skip_layers, set_trainable=True)
     total_loss = loss(pred, labels, 0.000)
     train_op = train(total_loss, global_step)
 
@@ -47,7 +47,7 @@ def run_train(train_from_scratch, batch_size, use_keypts):
           print format_str % (datetime.now(), self._step, loss_val, duration)
 
     with tf.train.MonitoredTrainingSession(
-      checkpoint_dir='./tmp/ckpt_5',
+      checkpoint_dir='./tmp/ckpt_2',
       save_checkpoint_secs=300,
       hooks=[tf.train.StopAtStepHook(last_step=10000),
             tf.train.NanTensorHook(total_loss),

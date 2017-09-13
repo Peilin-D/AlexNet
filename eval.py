@@ -3,6 +3,24 @@ from inputs import *
 from model import inference_deep, inference
 import argparse
 
+def restoreEMA(remove_layers):
+  variable_averages = tf.train.ExponentialMovingAverage(0.999)
+  ema_variables = variable_averages.variables_to_restore()
+  for k in ema_variables.keys():
+    layer = k.split('/')[0]
+    if layer in remove_layers:
+      del ema_variables[k]
+  
+  return ema_variables
+
+def restoreFIX(remove_layers):
+  variables = {v.op.name: v for v in tf.trainable_variables()}
+  for k in variables.keys():
+    layer = k.split('/')[0]
+    if layer in remove_layers:
+      del variables[k]
+  return variables
+
 def evaluate(train, batch_size, use_keypts):
   with tf.Graph().as_default() as g:
     if train:
@@ -13,19 +31,21 @@ def evaluate(train, batch_size, use_keypts):
     # if use_keypts:
     #  pred = inference_deep(images, 1.0, keypts)
     # else:
-    pred = inference(images, 1.0)
+    pred = inference_deep(images, 1.0)
     top_k_op = tf.nn.in_top_k(pred, labels, 1)
-    # variable_averages = tf.train.ExponentialMovingAverage(0.999)
-    # variables_to_restore = variable_averages.variables_to_restore()
-    # print variables_to_restore
-    saver = tf.train.Saver()
+    variable_averages = tf.train.ExponentialMovingAverage(0.999)
+    variables_to_restore = variable_averages.variables_to_restore()
+    # ema = restoreEMA(['conv1', 'conv2', 'conv3'])
+    # fix = restoreFIX(['fc4', 'fc5']) 
+    # fix.update(ema)
+    saver = tf.train.Saver(variables_to_restore)
 #         summary_op = tf.summary.merge_all()
 #         summary_write = tf.summary.FileWriter('./tmp/eval', g)
     with tf.Session() as sess:
-      ckpt = tf.train.get_checkpoint_state('./tmp/ckpt_5')
+      ckpt = tf.train.get_checkpoint_state('./tmp/ckpt_2')
       if ckpt and ckpt.model_checkpoint_path:
-        print ckpt.all_model_checkpoint_paths[-2]
-        saver.restore(sess, ckpt.all_model_checkpoint_paths[-2])
+        print ckpt.all_model_checkpoint_paths[-3]
+        saver.restore(sess, ckpt.all_model_checkpoint_paths[-3])
       else:
         print 'No checkpoint file found'
         return
@@ -39,18 +59,6 @@ def evaluate(train, batch_size, use_keypts):
         print e
       coord.request_stop()
       coord.join(threads, stop_grace_period_secs=10)
-
-# use this function during training
-def eval_once(batch_size, use_keypts, top_k): 
-  images, labels, keypts = inputs(batch_size)
-  if use_keypts:
-    pred = inference_deep(images, 1.0, keypts)
-  else:
-    pred = inference_deep(images, 1.0)
-
-  true_count = tf.reduce_sum(tf.cast(tf.nn.in_top_k(pred, labels, top_k), tf.float32))
-  acc = tf.divide(true_count, batch_size)
-  return acc
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser()
