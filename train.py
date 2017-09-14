@@ -8,6 +8,7 @@ import time
 import argparse
 
 def run_train(train_from_scratch, batch_size, use_keypts, checkpoint_dir):
+  print use_keypts
   with tf.Graph().as_default() as g:
     global_step = tf.contrib.framework.get_or_create_global_step()
     with tf.device('/cpu:0'):

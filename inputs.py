@@ -115,9 +115,12 @@ def inputs(batch_size):
     keypts_list.extend(get_keypts(folder, cur_list, train=False))
     img_list.extend(cur_list)
     i += 1
-      
+     
+  input_tensor = zip(img_list, label_list, keypts_list)
+  random.shuffle(input_tensor)
+ 
   data_queue = tf.FIFOQueue(capacity=100, dtypes=[tf.string, tf.int32, tf.float32], shapes=[[],[],[36]])
-  enqueue_op = data_queue.enqueue_many([img_list, label_list, keypts_list])
+  enqueue_op = data_queue.enqueue_many(zip(*input_tensor))
   qr = tf.train.QueueRunner(data_queue, [enqueue_op] * 4)
   tf.train.add_queue_runner(qr)
   

@@ -27,11 +27,14 @@ def evaluate(train, batch_size, use_keypts, checkpoint_dir):
     else:
       images, labels, keypts = inputs(batch_size)
 
-    # if use_keypts:
-    #  pred = inference_deep(images, 1.0, keypts)
-    # else:
-    pred = inference_deep(images, 1.0, keypts)
+    if use_keypts:
+      pred = inference_deep(images, 1.0, keypts)
+    else:
+      pred = inference_deep(images, 1.0)
+    
     top_k_op = tf.nn.in_top_k(pred, labels, 1)  
+    mAP_op, update_op = tf.metrics.sparse_average_precision_at_k(tf.cast(labels, tf.int64), pred, 1)
+
     # variable_averages = tf.train.ExponentialMovingAverage(0.999)
     # variables_to_restore = variable_averages.variables_to_restore()
     # ema = restoreEMA(['conv1', 'conv2', 'conv3'])
@@ -41,6 +44,7 @@ def evaluate(train, batch_size, use_keypts, checkpoint_dir):
 #         summary_op = tf.summary.merge_all()
 #         summary_write = tf.summary.FileWriter('./tmp/eval', g)
     with tf.Session() as sess:
+      sess.run(tf.local_variables_initializer())
       ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
       if ckpt and ckpt.model_checkpoint_path:
         print ckpt.all_model_checkpoint_paths[-1]
@@ -51,6 +55,9 @@ def evaluate(train, batch_size, use_keypts, checkpoint_dir):
       coord = tf.train.Coordinator()
       threads = tf.train.start_queue_runners(sess, coord)
       try:
+        sess.run(update_op)
+        mAP = sess.run(mAP_op)
+        print '%s mAP: %.3f' % ('train' if train else 'test', mAP)
         true_count = np.sum(sess.run(top_k_op))
         precision = float(true_count) / batch_size
         print '%s precision: %.3f' % ('train' if train else 'test', precision)
