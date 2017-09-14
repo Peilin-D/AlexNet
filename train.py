@@ -25,6 +25,7 @@ def run_train(train_from_scratch, batch_size, use_keypts, checkpoint_dir):
     if not os.path.exists(checkpoint_dir):
       os.mkdir(checkpoint_dir)
     with tf.Session() as sess:
+      sess.run(tf.global_variables_initializer())
       ckpt = tf.train.get_checkpoint_state(checkpoint_dir)
       if ckpt and ckpt.model_checkpoint_path:
         saver.restore(sess, ckpt.all_model_checkpoint_paths[-1])
@@ -32,8 +33,7 @@ def run_train(train_from_scratch, batch_size, use_keypts, checkpoint_dir):
         print 'No checkpoint file found'
         if not train_from_scratch:
           sess.run(load_op)
-
-      sess.run(tf.global_variables_initializer())
+	  print 'weights loaded'
       coord = tf.train.Coordinator()
       threads = tf.train.start_queue_runners(sess, coord)
       
@@ -41,13 +41,13 @@ def run_train(train_from_scratch, batch_size, use_keypts, checkpoint_dir):
       max_iter = 10000
       while i < max_iter and not coord.should_stop():
         sess.run(train_op)
-        if i % 10 == 0:
+        if i % 100 == 0:
           loss_val = sess.run(total_loss)
           print 'step %d, loss = %.3f' % (i, loss_val)
-        if i > 0 and i % 10 == 0:
+        if i > 0 and i % 500 == 0:
           saver.save(sess, checkpoint_dir + '/model_ckpt', global_step)
-          evaluate(False, 500, False, checkpoint_dir=checkpoint_dir)
-          evaluate(True, 1000, False, checkpoint_dir=checkpoint_dir)
+          evaluate(False, 500, use_keypts, checkpoint_dir=checkpoint_dir)
+          evaluate(True, 1000, use_keypts, checkpoint_dir=checkpoint_dir)
         i += 1
 
 if __name__ == '__main__':

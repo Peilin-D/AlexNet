@@ -65,11 +65,8 @@ def inference_deep(images, keep_prob, keypts=None):
   
   # 6th layer
   pool5_flat = tf.reshape(pool5, [-1, 6 * 6 * 256])
-  if keypts is not None:
-    pool5_flat = tf.concat([pool5_flat, keypts], axis=1)
-
   fc6 = fc('fc6', pool5_flat, 4096)
-  
+   
   # drop out
   fc6_drop = tf.nn.dropout(fc6, keep_prob)
   
@@ -79,6 +76,10 @@ def inference_deep(images, keep_prob, keypts=None):
   # drop out
   fc7_drop = tf.nn.dropout(fc7, keep_prob)
   
+  # concat on dropout layer of fc7
+  if keypts is not None:
+    fc7_drop = tf.concat([fc7_drop, keypts], axis=1) 
+
   # readout layer
   fc8 = fc('fc8', fc7_drop, 40, relu=False)
   
@@ -140,7 +141,7 @@ def loss(logits, labels, wd):
     return cross_entropy + wd * tf.add_n(reg_losses)
 
 def train(loss, global_step):
-  lr = tf.train.exponential_decay(0.01, global_step, 3000, 0.1, True)
+  lr = tf.train.exponential_decay(0.01, global_step, 5000, 0.1, True)
   opt = tf.train.GradientDescentOptimizer(lr)
   # opt = tf.train.MomentumOptimizer(lr, 0.9)
   # opt = tf.train.AdamOptimizer()
