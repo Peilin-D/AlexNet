@@ -12,14 +12,14 @@ def run_train(train_from_scratch, batch_size, use_keypts, checkpoint_dir):
     global_step = tf.contrib.framework.get_or_create_global_step()
     with tf.device('/cpu:0'):
       images, labels, keypts = distorted_inputs(batch_size)
-    #if use_keypts:
-    #  pred = inference(images, 0.5, keypts)
-    #else:
-    pred = inference(images, 0.5)
+    if use_keypts:
+      pred = inference_deep(images, 0.5, keypts)
+    else:
+      pred = inference_deep(images, 0.5)
 
-    skip_layers = ['conv4', 'conv5', 'fc6', 'fc7', 'fc8']
+    skip_layers = ['fc7', 'fc8']
     load_op = load_pretrained_weights(skip_layers, set_trainable=True)
-    total_loss = loss(pred, labels, 0.000)
+    total_loss = loss(pred, labels, 0.0)
     train_op = train(total_loss, global_step)
     saver = tf.train.Saver(max_to_keep=10)
     if not os.path.exists(checkpoint_dir):
@@ -30,19 +30,21 @@ def run_train(train_from_scratch, batch_size, use_keypts, checkpoint_dir):
         saver.restore(sess, ckpt.all_model_checkpoint_paths[-1])
       else:
         print 'No checkpoint file found'
-        sess.run(tf.global_variables_initializer())
+        if not train_from_scratch:
+          sess.run(load_op)
+
+      sess.run(tf.global_variables_initializer())
       coord = tf.train.Coordinator()
       threads = tf.train.start_queue_runners(sess, coord)
-      if not train_from_scratch:
-        sess.run(load_op)
+      
       i = 0
       max_iter = 10000
       while i < max_iter and not coord.should_stop():
         sess.run(train_op)
-        if i % 100 == 0:
+        if i % 10 == 0:
           loss_val = sess.run(total_loss)
           print 'step %d, loss = %.3f' % (i, loss_val)
-        if i > 0 and i % 500 == 0:
+        if i > 0 and i % 10 == 0:
           saver.save(sess, checkpoint_dir + '/model_ckpt', global_step)
           evaluate(False, 500, False, checkpoint_dir=checkpoint_dir)
           evaluate(True, 1000, False, checkpoint_dir=checkpoint_dir)

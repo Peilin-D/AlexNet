@@ -38,7 +38,7 @@ def fc(name, inputs, output_size, relu=True):
       else:
         return out
       
-def inference_deep(images, keep_prob, keypts = None):
+def inference_deep(images, keep_prob, keypts=None):
   # 1st layer
   conv1 = conv_relu('conv1', images, [11, 11, 3, 96], [1, 4, 4, 1], 'VALID', 1)
   lrn1 = tf.nn.local_response_normalization(conv1, alpha=2e-5, beta=0.75,

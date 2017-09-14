@@ -30,8 +30,8 @@ def evaluate(train, batch_size, use_keypts, checkpoint_dir):
     # if use_keypts:
     #  pred = inference_deep(images, 1.0, keypts)
     # else:
-    pred = inference(images, 1.0)
-    top_k_op = tf.nn.in_top_k(pred, labels, 1)
+    pred = inference_deep(images, 1.0, keypts)
+    top_k_op = tf.nn.in_top_k(pred, labels, 1)  
     # variable_averages = tf.train.ExponentialMovingAverage(0.999)
     # variables_to_restore = variable_averages.variables_to_restore()
     # ema = restoreEMA(['conv1', 'conv2', 'conv3'])
